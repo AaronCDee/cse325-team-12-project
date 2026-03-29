@@ -1,0 +1,125 @@
+.profile-menu-shell {
+    position: relative;
+    display: block;
+}
+
+.profile-menu-shell summary {
+    list-style: none;
+}
+
+.profile-menu-shell summary::-webkit-details-marker {
+    display: none;
+}
+
+.profile-panel {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.5rem;
+    color: #f8fafc;
+    cursor: pointer;
+    border-radius: 0.85rem;
+}
+
+.profile-avatar {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #2563eb;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    flex: 0 0 auto;
+}
+
+.profile-meta {
+    min-width: 0;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.profile-name,
+.profile-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-name {
+    color: #f8fafc;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.profile-email {
+    color: rgba(248, 250, 252, 0.72);
+    font-size: 0.78rem;
+    line-height: 1.2;
+}
+
+.profile-menu-button {
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    padding: 0;
+    color: rgba(248, 250, 252, 0.88);
+    border-radius: 999px;
+    flex: 0 0 auto;
+}
+
+.profile-panel:hover .profile-menu-button,
+.profile-menu-shell[open] .profile-menu-button {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.profile-menu-dots {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+.profile-dropdown {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 0.45rem);
+    width: 100%;
+    background: #1f2937;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.profile-dropdown-action {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    color: #f8fafc;
+    background: transparent;
+    border: none;
+    text-align: left;
+}
+
+.profile-dropdown-link {
+    display: block;
+    padding: 0.85rem 1rem;
+    color: #f8fafc;
+    text-decoration: none;
+}
+
+.profile-dropdown-link:hover,
+.profile-dropdown-action:hover {
+    background: rgba(255, 255, 255, 0.08);
+}

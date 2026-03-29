@@ -1,0 +1,139 @@
+@page "/tasks/{Id:int}/edit"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDbContextFactory<TaskTrackerDbContext> DbContextFactory
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit Task</PageTitle>
+
+<div class="mb-4">
+    <h1 class="mb-1">Edit Task</h1>
+    <p class="text-muted mb-0">Update the task details assigned to your account.</p>
+</div>
+
+@if (isLoading)
+{
+    <p>Loading task...</p>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (!taskFound)
+{
+    <div class="alert alert-warning">That task could not be found.</div>
+    <a class="btn btn-outline-secondary" href="/tasks">Back to tasks</a>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <TaskEditorForm Model="taskModel"
+                            SubmitText="Save changes"
+                            IsSaving="isSaving"
+                            OnValidSubmit="SaveTaskAsync" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private readonly TaskEditorModel taskModel = new();
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool taskFound = true;
+    private string? errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadTaskAsync();
+    }
+
+    private async Task LoadTaskAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        taskFound = true;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = UserManager.GetUserId(authState.User);
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                NavigationManager.NavigateTo("/Identity/Account/Login", forceLoad: true);
+                return;
+            }
+
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var task = await dbContext.Tasks
+                .AsNoTracking()
+                .SingleOrDefaultAsync(item => item.Id == Id && item.UserId == userId);
+
+            if (task is null)
+            {
+                taskFound = false;
+                return;
+            }
+
+            taskModel.Title = task.Title;
+            taskModel.Description = task.Description;
+            taskModel.DueDateUtc = task.DueDateUtc;
+        }
+        catch
+        {
+            errorMessage = "The task could not be loaded.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveTaskAsync()
+    {
+        errorMessage = null;
+        isSaving = true;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = UserManager.GetUserId(authState.User);
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                NavigationManager.NavigateTo("/Identity/Account/Login", forceLoad: true);
+                return;
+            }
+
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var task = await dbContext.Tasks.SingleOrDefaultAsync(item => item.Id == Id && item.UserId == userId);
+
+            if (task is null)
+            {
+                taskFound = false;
+                return;
+            }
+
+            task.Title = taskModel.Title.Trim();
+            task.Description = string.IsNullOrWhiteSpace(taskModel.Description) ? null : taskModel.Description.Trim();
+            task.DueDateUtc = taskModel.DueDateUtc;
+
+            await dbContext.SaveChangesAsync();
+            NavigationManager.NavigateTo("/tasks");
+        }
+        catch
+        {
+            errorMessage = "The task could not be updated.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

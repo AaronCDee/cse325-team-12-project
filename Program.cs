@@ -13,6 +13,8 @@ builder.Services.AddRazorComponents()
 builder.Services.AddRazorPages();
 builder.Services.AddDbContext<TaskTrackerDbContext>(options =>
     options.UseSqlite(connectionString));
+builder.Services.AddDbContextFactory<TaskTrackerDbContext>(options =>
+    options.UseSqlite(connectionString), ServiceLifetime.Scoped);
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
     .AddEntityFrameworkStores<TaskTrackerDbContext>();
 builder.Services.AddCascadingAuthenticationState();

@@ -1,0 +1,93 @@
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+
+<details class="profile-menu-shell">
+    <summary class="profile-panel">
+        <span class="profile-avatar">@AvatarInitials</span>
+        <span class="profile-meta">
+            <span class="profile-name">@DisplayName</span>
+            <span class="profile-email">@Email</span>
+        </span>
+        <span class="profile-menu-button" aria-hidden="true">
+            <span class="profile-menu-dots">&#8942;</span>
+        </span>
+    </summary>
+
+    <div class="profile-dropdown">
+        <a class="profile-dropdown-link" href="/profile/settings">Profile settings</a>
+        <form method="post" action="/Identity/Account/Logout">
+            <AntiforgeryToken />
+            <button type="submit" class="profile-dropdown-action">Logout</button>
+        </form>
+    </div>
+</details>
+
+@code {
+    private string DisplayName { get; set; } = "User";
+    private string Email { get; set; } = string.Empty;
+    private string AvatarInitials { get; set; } = "U";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var principal = authState.User;
+
+        Email = principal.Identity?.Name ?? string.Empty;
+
+        if (principal.Identity?.IsAuthenticated is not true)
+        {
+            return;
+        }
+
+        var user = await UserManager.GetUserAsync(principal);
+
+        if (user is not null)
+        {
+            Email = user.Email ?? Email;
+            DisplayName = BuildDisplayName(user.FirstName, user.LastName, Email);
+            AvatarInitials = BuildInitials(user.FirstName, user.LastName, Email);
+            return;
+        }
+
+        DisplayName = BuildFallbackDisplayName(Email);
+        AvatarInitials = BuildInitials(null, null, Email);
+    }
+
+    private static string BuildDisplayName(string? firstName, string? lastName, string? email)
+    {
+        var fullName = $"{firstName} {lastName}".Trim();
+        return string.IsNullOrWhiteSpace(fullName) ? BuildFallbackDisplayName(email) : fullName;
+    }
+
+    private static string BuildFallbackDisplayName(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return "User";
+        }
+
+        return email.Split('@', StringSplitOptions.RemoveEmptyEntries)[0];
+    }
+
+    private static string BuildInitials(string? firstName, string? lastName, string? email)
+    {
+        var firstInitial = string.IsNullOrWhiteSpace(firstName) ? null : firstName.Trim()[0].ToString().ToUpperInvariant();
+        var lastInitial = string.IsNullOrWhiteSpace(lastName) ? null : lastName.Trim()[0].ToString().ToUpperInvariant();
+
+        if (!string.IsNullOrWhiteSpace(firstInitial) && !string.IsNullOrWhiteSpace(lastInitial))
+        {
+            return $"{firstInitial}{lastInitial}";
+        }
+
+        var fallback = BuildFallbackDisplayName(email).Trim();
+
+        if (string.IsNullOrWhiteSpace(fallback))
+        {
+            return "U";
+        }
+
+        return fallback.Length >= 2
+            ? fallback[..2].ToUpperInvariant()
+            : fallback[..1].ToUpperInvariant();
+    }
+}
