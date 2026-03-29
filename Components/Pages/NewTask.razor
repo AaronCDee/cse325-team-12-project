@@ -1,0 +1,73 @@
+@page "/tasks/new"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDbContextFactory<TaskTrackerDbContext> DbContextFactory
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create Task</PageTitle>
+
+<div class="mb-4">
+    <h1 class="mb-1">Create Task</h1>
+    <p class="text-muted mb-0">Add a new task to your personal tracker.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <TaskEditorForm Model="taskModel"
+                        SubmitText="Create task"
+                        IsSaving="isSaving"
+                        OnValidSubmit="CreateTaskAsync" />
+    </div>
+</div>
+
+@code {
+    private readonly TaskEditorModel taskModel = new();
+    private bool isSaving;
+    private string? errorMessage;
+
+    private async Task CreateTaskAsync()
+    {
+        errorMessage = null;
+        isSaving = true;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = UserManager.GetUserId(authState.User);
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                NavigationManager.NavigateTo("/Identity/Account/Login", forceLoad: true);
+                return;
+            }
+
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            dbContext.Tasks.Add(new TaskItem
+            {
+                Title = taskModel.Title.Trim(),
+                Description = string.IsNullOrWhiteSpace(taskModel.Description) ? null : taskModel.Description.Trim(),
+                DueDateUtc = taskModel.DueDateUtc,
+                CreatedAtUtc = DateTime.UtcNow,
+                UserId = userId
+            });
+
+            await dbContext.SaveChangesAsync();
+            NavigationManager.NavigateTo("/tasks");
+        }
+        catch
+        {
+            errorMessage = "The task could not be saved.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

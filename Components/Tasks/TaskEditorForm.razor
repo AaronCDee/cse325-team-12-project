@@ -1,0 +1,55 @@
+@namespace TaskTracker.Components.Tasks
+
+<EditForm Model="Model" OnValidSubmit="OnValidSubmit" class="card shadow-sm">
+    <DataAnnotationsValidator />
+
+    <div class="card-body">
+        <ValidationSummary class="alert alert-danger" />
+
+        <div class="mb-3">
+            <label class="form-label" for="task-title">Title</label>
+            <InputText id="task-title" class="form-control" @bind-Value="Model.Title" />
+            <ValidationMessage class="text-danger" For="() => Model.Title" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="task-description">Description</label>
+            <InputTextArea id="task-description" class="form-control" @bind-Value="Model.Description" />
+            <ValidationMessage class="text-danger" For="() => Model.Description" />
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label" for="task-due-date">Due date</label>
+            <InputDate id="task-due-date" class="form-control" @bind-Value="Model.DueDateUtc" />
+            <ValidationMessage class="text-danger" For="() => Model.DueDateUtc" />
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" disabled="@IsSaving">
+                @SubmitText
+            </button>
+
+            @if (!string.IsNullOrWhiteSpace(CancelHref))
+            {
+                <a class="btn btn-outline-secondary" href="@CancelHref">Cancel</a>
+            }
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired]
+    public TaskEditorModel Model { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public EventCallback OnValidSubmit { get; set; }
+
+    [Parameter]
+    public string SubmitText { get; set; } = "Save task";
+
+    [Parameter]
+    public string CancelHref { get; set; } = "/tasks";
+
+    [Parameter]
+    public bool IsSaving { get; set; }
+}

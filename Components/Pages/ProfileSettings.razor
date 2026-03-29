@@ -1,0 +1,406 @@
+@page "/profile/settings"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using System.ComponentModel.DataAnnotations
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Profile Settings</PageTitle>
+
+<div class="mb-4">
+    <h1 class="mb-1">Profile Settings</h1>
+    <p class="text-muted mb-0">Review your account details and change them only when needed.</p>
+</div>
+
+@if (isLoading)
+{
+    <p>Loading profile...</p>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 mb-1">Personal Details</h2>
+                            <p class="text-muted mb-0">Email is fixed as your account identifier.</p>
+                        </div>
+                        @if (!isEditingProfile)
+                        {
+                            <button type="button" class="btn btn-outline-primary" @onclick="BeginProfileEdit">
+                                Edit
+                            </button>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(profileMessage))
+                    {
+                        <div class="alert @profileMessageClass">@profileMessage</div>
+                    }
+
+                    @if (!isEditingProfile)
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">First Name</dt>
+                            <dd class="col-sm-8">@profileModel.FirstName</dd>
+
+                            <dt class="col-sm-4">Last Name</dt>
+                            <dd class="col-sm-8">@profileModel.LastName</dd>
+
+                            <dt class="col-sm-4">Email</dt>
+                            <dd class="col-sm-8">@profileModel.Email</dd>
+                        </dl>
+                    }
+                    else
+                    {
+                        <EditForm Model="profileModel" OnValidSubmit="RequestProfileSaveAsync">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <div class="mb-3">
+                                <label class="form-label" for="first-name">First Name</label>
+                                <InputText id="first-name" class="form-control" @bind-Value="profileModel.FirstName" />
+                                <ValidationMessage class="text-danger" For="() => profileModel.FirstName" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="last-name">Last Name</label>
+                                <InputText id="last-name" class="form-control" @bind-Value="profileModel.LastName" />
+                                <ValidationMessage class="text-danger" For="() => profileModel.LastName" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label" for="email">Email</label>
+                                <input id="email" class="form-control" value="@profileModel.Email" readonly />
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" disabled="@isSavingProfile">Save Details</button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CancelProfileEdit">Cancel</button>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 mb-1">Password</h2>
+                            <p class="text-muted mb-0">Keep your account secure with a strong password.</p>
+                        </div>
+                        @if (!isEditingPassword)
+                        {
+                            <button type="button" class="btn btn-outline-primary" @onclick="BeginPasswordEdit">
+                                Edit
+                            </button>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(passwordMessage))
+                    {
+                        <div class="alert @passwordMessageClass">@passwordMessage</div>
+                    }
+
+                    @if (!isEditingPassword)
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Existing Password</dt>
+                            <dd class="col-sm-8">@(hasPassword ? "********" : "No password set")</dd>
+                        </dl>
+                    }
+                    else
+                    {
+                        <EditForm Model="passwordModel" OnValidSubmit="RequestPasswordSaveAsync">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <div class="mb-3">
+                                <label class="form-label" for="current-password">Current Password</label>
+                                <InputText id="current-password" type="password" class="form-control" @bind-Value="passwordModel.CurrentPassword" />
+                                <ValidationMessage class="text-danger" For="() => passwordModel.CurrentPassword" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="new-password">New Password</label>
+                                <InputText id="new-password" type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
+                                <ValidationMessage class="text-danger" For="() => passwordModel.NewPassword" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label" for="confirm-password">Confirm New Password</label>
+                                <InputText id="confirm-password" type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
+                                <ValidationMessage class="text-danger" For="() => passwordModel.ConfirmPassword" />
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" disabled="@isSavingPassword">Change Password</button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CancelPasswordEdit">Cancel</button>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (pendingChange is not PendingChange.None)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5 mb-0">Confirm Change</h2>
+                    <button type="button" class="btn-close" aria-label="Close" @onclick="ClearPendingChange"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">@ConfirmMessage</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="ClearPendingChange">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmPendingChangeAsync">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private readonly ProfileSettingsModel profileModel = new();
+    private readonly ChangePasswordModel passwordModel = new();
+    private bool isLoading = true;
+    private bool isSavingProfile;
+    private bool isSavingPassword;
+    private bool isEditingProfile;
+    private bool isEditingPassword;
+    private bool hasPassword;
+    private string? profileMessage;
+    private string profileMessageClass = "alert-success";
+    private string? passwordMessage;
+    private string passwordMessageClass = "alert-success";
+    private PendingChange pendingChange;
+
+    private string ConfirmMessage => pendingChange switch
+    {
+        PendingChange.Profile => "Save these profile detail changes?",
+        PendingChange.Password => "Change your password now?",
+        _ => string.Empty
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserAsync();
+    }
+
+    private async Task LoadUserAsync()
+    {
+        var user = await GetCurrentUserAsync();
+
+        if (user is null)
+        {
+            NavigationManager.NavigateTo("/Identity/Account/Login", forceLoad: true);
+            return;
+        }
+
+        SyncProfileModel(user);
+        hasPassword = await UserManager.HasPasswordAsync(user);
+        isLoading = false;
+    }
+
+    private async Task RequestProfileSaveAsync()
+    {
+        pendingChange = PendingChange.Profile;
+        await Task.CompletedTask;
+    }
+
+    private async Task RequestPasswordSaveAsync()
+    {
+        pendingChange = PendingChange.Password;
+        await Task.CompletedTask;
+    }
+
+    private async Task ConfirmPendingChangeAsync()
+    {
+        switch (pendingChange)
+        {
+            case PendingChange.Profile:
+                await SaveProfileAsync();
+                break;
+            case PendingChange.Password:
+                await ChangePasswordAsync();
+                break;
+        }
+
+        pendingChange = PendingChange.None;
+    }
+
+    private void ClearPendingChange() => pendingChange = PendingChange.None;
+
+    private async Task SaveProfileAsync()
+    {
+        profileMessage = null;
+        isSavingProfile = true;
+
+        var user = await GetCurrentUserAsync();
+
+        if (user is null)
+        {
+            NavigationManager.NavigateTo("/Identity/Account/Login", forceLoad: true);
+            return;
+        }
+
+        user.FirstName = profileModel.FirstName.Trim();
+        user.LastName = profileModel.LastName.Trim();
+
+        var result = await UserManager.UpdateAsync(user);
+
+        if (result.Succeeded)
+        {
+            await SignInManager.RefreshSignInAsync(user);
+            SyncProfileModel(user);
+            profileMessageClass = "alert-success";
+            profileMessage = "Profile details updated.";
+            isEditingProfile = false;
+        }
+        else
+        {
+            profileMessageClass = "alert-danger";
+            profileMessage = string.Join(" ", result.Errors.Select(error => error.Description));
+        }
+
+        isSavingProfile = false;
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        passwordMessage = null;
+        isSavingPassword = true;
+
+        var user = await GetCurrentUserAsync();
+
+        if (user is null)
+        {
+            NavigationManager.NavigateTo("/Identity/Account/Login", forceLoad: true);
+            return;
+        }
+
+        var result = await UserManager.ChangePasswordAsync(user, passwordModel.CurrentPassword, passwordModel.NewPassword);
+
+        if (result.Succeeded)
+        {
+            await SignInManager.RefreshSignInAsync(user);
+            hasPassword = await UserManager.HasPasswordAsync(user);
+            ResetPasswordModel();
+            passwordMessageClass = "alert-success";
+            passwordMessage = "Password updated.";
+            isEditingPassword = false;
+        }
+        else
+        {
+            passwordMessageClass = "alert-danger";
+            passwordMessage = string.Join(" ", result.Errors.Select(error => error.Description));
+        }
+
+        isSavingPassword = false;
+    }
+
+    private async Task<ApplicationUser?> GetCurrentUserAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return await UserManager.GetUserAsync(authState.User);
+    }
+
+    private void BeginProfileEdit()
+    {
+        isEditingProfile = true;
+        profileMessage = null;
+    }
+
+    private async Task CancelProfileEdit()
+    {
+        var user = await GetCurrentUserAsync();
+
+        if (user is not null)
+        {
+            SyncProfileModel(user);
+        }
+
+        isEditingProfile = false;
+        profileMessage = null;
+    }
+
+    private void BeginPasswordEdit()
+    {
+        isEditingPassword = true;
+        passwordMessage = null;
+        ResetPasswordModel();
+    }
+
+    private void CancelPasswordEdit()
+    {
+        isEditingPassword = false;
+        passwordMessage = null;
+        ResetPasswordModel();
+    }
+
+    private void SyncProfileModel(ApplicationUser user)
+    {
+        profileModel.FirstName = user.FirstName ?? string.Empty;
+        profileModel.LastName = user.LastName ?? string.Empty;
+        profileModel.Email = user.Email ?? string.Empty;
+    }
+
+    private void ResetPasswordModel()
+    {
+        passwordModel.CurrentPassword = string.Empty;
+        passwordModel.NewPassword = string.Empty;
+        passwordModel.ConfirmPassword = string.Empty;
+    }
+
+    private sealed class ProfileSettingsModel
+    {
+        [Required]
+        [StringLength(50)]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(50)]
+        public string LastName { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+    }
+
+    private sealed class ChangePasswordModel
+    {
+        [Required]
+        [DataType(DataType.Password)]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(100, MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required]
+        [DataType(DataType.Password)]
+        [Compare(nameof(NewPassword), ErrorMessage = "The new password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    private enum PendingChange
+    {
+        None,
+        Profile,
+        Password
+    }
+}
