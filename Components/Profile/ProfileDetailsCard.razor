@@ -1,0 +1,79 @@
+@namespace TaskTracker.Components.Profile
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <h2 class="h5 mb-1">Personal Details</h2>
+                <p class="text-muted mb-0">Email is fixed as your account identifier.</p>
+            </div>
+            @if (!IsEditing)
+            {
+                <button type="button" class="btn btn-outline-primary" @onclick="OnBeginEdit">
+                    Edit
+                </button>
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Message))
+        {
+            <div class="alert @MessageClass">@Message</div>
+        }
+
+        @if (!IsEditing)
+        {
+            <dl class="row mb-0">
+                <dt class="col-sm-4">First Name</dt>
+                <dd class="col-sm-8">@Model.FirstName</dd>
+
+                <dt class="col-sm-4">Last Name</dt>
+                <dd class="col-sm-8">@Model.LastName</dd>
+
+                <dt class="col-sm-4">Email</dt>
+                <dd class="col-sm-8">@Model.Email</dd>
+            </dl>
+        }
+        else
+        {
+            <EditForm Model="Model" OnValidSubmit="HandleSaveAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="alert alert-danger" />
+
+                <div class="mb-3">
+                    <label class="form-label" for="first-name">First Name</label>
+                    <InputText id="first-name" class="form-control" @bind-Value="Model.FirstName" />
+                    <ValidationMessage class="text-danger" For="() => Model.FirstName" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="last-name">Last Name</label>
+                    <InputText id="last-name" class="form-control" @bind-Value="Model.LastName" />
+                    <ValidationMessage class="text-danger" For="() => Model.LastName" />
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label" for="email">Email</label>
+                    <input id="email" class="form-control" value="@Model.Email" readonly />
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" disabled="@IsSaving">Save Details</button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="OnCancelEdit">Cancel</button>
+                </div>
+            </EditForm>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ProfileSettingsModel Model { get; set; } = default!;
+    [Parameter] public bool IsEditing { get; set; }
+    [Parameter] public bool IsSaving { get; set; }
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string MessageClass { get; set; } = "alert-success";
+    [Parameter] public EventCallback OnBeginEdit { get; set; }
+    [Parameter] public EventCallback OnCancelEdit { get; set; }
+    [Parameter] public EventCallback OnSave { get; set; }
+
+    private Task HandleSaveAsync() => OnSave.InvokeAsync();
+}

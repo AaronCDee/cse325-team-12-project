@@ -58,3 +58,59 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+
+/* ============================= */
+/* GLOBAL RESPONSIVE ADDITIONS   */
+/* ============================= */
+
+/* Ensure layout takes full height */
+.page {
+    min-height: 100vh;
+}
+
+/* Sidebar default (desktop) */
+.sidebar {
+    width: 250px;
+}
+
+/* Make layout flexible */
+.page {
+    display: flex;
+    flex-direction: row;
+}
+
+/* Mobile & tablet responsiveness */
+@media (max-width: 768px) {
+
+    /* Stack layout vertically */
+    .page {
+        flex-direction: column;
+    }
+
+    /* Sidebar takes full width */
+    .sidebar {
+        width: 100%;
+    }
+
+    /* Top bar stacks nicely */
+    .top-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Reduce padding on small screens */
+    .content {
+        padding: 10px;
+    }
+
+    /* Buttons full width on mobile */
+    .btn {
+        width: 100%;
+    }
+
+    /* Make text smaller on mobile */
+    h1 {
+        font-size: 1.5rem;
+    }
+}
