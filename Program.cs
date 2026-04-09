@@ -40,4 +40,10 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapRazorPages();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TaskTrackerDbContext>();
+    db.Database.Migrate();
+}
+
 app.Run();
